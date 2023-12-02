@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Blaze</title>
+    <link rel="stylesheet" href="pred.css">
+    <link rel="stylesheet" href="mouse.css">
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1"></script>
+
+    <style>
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+      @keyframes fade {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+
+      #balance {
+          animation: fade 0.5s ease-in-out;
+      }
+
+        .container {
+            opacity: 0;
+            animation: fadeIn 1s ease-in-out forwards;
+            animation-delay: 3.1s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <audio id="audioPlayer" autoplay>
+        Your browser does not support the audio element.
+    </audio>
+
+    <div id="cursor"></div>
+
+    <div class="container">
+        <div class="box">
+            <div class="cube"></div>
+        </div>
+    </div>
+    <div class="container">
+      <div id="balance" style="color: white; font-size: 24px; font-weight: bold; position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);"></div>
+        <ul>
+            <li style="--i:6;">
+                <div onclick="changeContent('Home')">Home</div>
+            </li>
+            <li style="--i:5;"><div onclick="changeContent('Mines')">Mines</div></li>
+            <li style="--i:3;"><div onclick="changeContent('Crash')">Crash</div></li>
+            <li style="--i:1;"><div onclick="changeContent('Slides')">Slides</div></li>
+        </ul>
+        <div class="square" id="square">
+            <div id="mainPredictionText" style="color: #fff; font-weight: bold; font-size: 16px; position: absolute; top: 70%; left: 50%; transform: translateX(-50%); display: none;"></div>
+            <div id="mainText" style="user-select:none; color: #fff; font-weight: bold; font-size: 24px; text-align: center; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-transform: uppercase;">
+                Project Blaze
+                <div style="font-size: 22px; margin-top: 10px;">V 0.87.</div>
+                <div style="font-size: 16px; margin-top: 5px;">Developer: D1LL</div>
+            </div>
+            <div id="colorText" style="color: #fff; font-weight: bold; font-size: 16px; position: absolute; top: 38%; left: 45%; display: none;">
+                Color
+            </div>
+            <input type="color" id="colorPicker" style="position: absolute; top: 47.5%; left: 45%; display: none;" onchange="updateColor()">
+            <div id="authText" style="color: #fff; font-size: 14px; position: absolute; top: 70%; left: 50%; transform: translateX(-50%); display: none;">
+                Authentication
+            </div>
+            <input type="password" id="inputField" style="width: 100px; position: absolute; top: 80%; left: 50%; transform: translateX(-50%); display: none;">
+            <button onclick="submitInput()" id="submitButton" style="position: absolute; top: 90%; left: 50%; transform: translateX(-50%); display: none; padding: 3px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 1s, color 1s, border-radius 1s; background-color: #f04029;">
+                Submit
+            </button>         
+
+            <div id="Box2" style="color: #fff; font-weight: bold; font-size: 16px; position: absolute; top: 70%; left: 50%; transform: translateX(-50%); display: none;"></div>
+        </div>
+
+
+        <script>
+            let bloxToken; 
+            let selectedColor = '#f04029'; 
+            let fetchInterval;
+
+            let cursor = document.querySelector('#cursor');
+            let body = document.querySelector('body');
+
+            document.addEventListener('mousemove', (e) => {
+                body.style.backgroundPositionX = e.pageX/-4 + 'px';
+                body.style.backgroundPositionY = e.pageY/-4 + 'px';
+                cursor.style.top = e.pageY + 'px';
+                cursor.style.left = e.pageX + 'px';
+            })
+
+            function lines(color) {
+    let sizeW = Math.random() * 12;
+    let duration = Math.random() * 3;
+    let e = document.createElement('div');
+    e.setAttribute('class', 'circle');
+    document.body.appendChild(e);
+    e.style.width = 2 + sizeW + 'px';
+    e.style.left = Math.random() * innerWidth + 'px';
+    e.style.animationDuration = 2 + duration + 's';
+    e.style.background = color;
+    e.style.boxShadow = `0 0 25px ${color}`;
+
+    setTimeout(function () {
+        document.body.removeChild(e);
+    }, 5000);
+}
+
+setInterval(function () {
+    lines(selectedColor);
+}, 200);
+
+          async function balance() {
+              try {
+                  const auth_token = localStorage.getItem('bloxToken');
+
+                  if (!auth_token) {
+                      console.error('Auth token not found in local storage');
+                      return null;
+                  }
+
+                  const response = await fetch('https://api.bloxflip.com/user', {
+                      headers: {
+                          'x-auth-token': auth_token,
+                      },
+                  });
+
+                  if (!response.ok) {
+                      throw new Error(`HTTP error! Status: ${response.status}`);
+                  }
+
+                  const request = await response.json();
+
+                  return request.user.wallet;
+              } catch (error) {
+                  console.error('Error making the request:', error.message);
+                  return null;
+              }
+          }
+
+          async function updateBalance() {
+              const user_balance = await balance();
+
+              if (user_balance !== null) {
+                  const rounded_balance = "BALANCE: " + user_balance.toFixed(3);
+
+                  const balanceElement = document.getElementById('balance');
+
+                  anime.remove(balanceElement);
+
+                  anime({
+                      targets: balanceElement,
+                      textContent: rounded_balance,
+                      round: 3,
+                      duration: 1000,
+                      easing: 'easeInOutQuad'
+                  });
+              }
+          }
+
+          setInterval(updateBalance,4000);
+
+            function crashPred() {
+                fetch("https://api.bloxflip.com/games/crash")
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.history && Array.isArray(data.history)) {
+                            var last3Rounds = data.history.slice(-3);
+                            var crashPoints = last3Rounds.map(round => round.crashPoint);
+
+                            var averageCrashPoint = crashPoints.reduce((sum, point) => sum + point, 0) / 3;
+                            var riskyPrediction = 1 / (averageCrashPoint - 2) / 1;
+                            riskyPrediction = Math.abs(riskyPrediction);
+                            if (0.01 <= riskyPrediction && riskyPrediction < 1.01) {
+                                riskyPrediction = riskyPrediction + 1;
+                            }
+
+                            var safePrediction = riskyPrediction + riskyPrediction / 2;
+                            var instantCrashPrediction = riskyPrediction - safePrediction / 2;
+
+                            if (0.01 <= instantCrashPrediction && instantCrashPrediction < 1.01) {
+                                instantCrashPrediction = instantCrashPrediction + 0.75;
+                            }
+
+                            instantCrashPrediction = parseFloat(instantCrashPrediction.toFixed(2));
+                            riskyPrediction = parseFloat(riskyPrediction.toFixed(2));
+                            safePrediction = parseFloat(safePrediction.toFixed(2));
+
+                            var predictionBox = document.getElementById("Box2");                 
+                            predictionBox.innerHTML = `<p>Safe: ${instantCrashPrediction}x</p>
+                                                       <p>Prediction: ${riskyPrediction}x</p>
+                                                       <p>Risky: ${safePrediction}x</p>`;
+                            predictionBox.style.display = "block";
+                        }
+                    });
+            }
+
+            let isMuted = false;
+
+        function toggleMute() {
+            const audioPlayer = document.getElementById('audioPlayer');
+            isMuted = !isMuted;
+
+            if (isMuted) {
+                audioPlayer.pause();
+            } else {
+                audioPlayer.play();
+            }
+        }
+
+
+            let gridCreated = false;
+const gridSize = 40;
+const totalGrids = 5 * 5;
+
+const playlist = [
+        'bg.mp3',
+    ];
+
+    let currentSongIndex = 0;
+
+    function playCurrentSong() {
+        const audioPlayer = document.getElementById('audioPlayer');
+        audioPlayer.src = playlist[currentSongIndex];
+        audioPlayer.play();
+        currentSongIndex = (currentSongIndex + 1) % playlist.length;
+    }
+
+    function handleSongEnded() {
+        playCurrentSong(); 
+    }
+
+    document.getElementById('audioPlayer').addEventListener('ended', handleSongEnded);
+
+    playCurrentSong();
+
+setTimeout(function () {
+            var loader = document.querySelector('.container');
+            loader.style.opacity = 0;
+            loader.addEventListener('transitionend', function () {
+                loader.remove();
+            });
+        }, 7000);
+
+function createGrid() {
+    const gridContainer = document.createElement('div');
+    gridContainer.style.display = 'grid';
+    gridContainer.style.gridTemplateColumns = `repeat(5, ${gridSize}px)`;
+    gridContainer.style.gridTemplateRows = `repeat(5, ${gridSize}px)`;
+    gridContainer.style.gap = '5px';
+    gridContainer.style.width = 'fit-content'; 
+    gridContainer.style.height = 'fit-content';
+    gridContainer.style.position = 'absolute';
+    gridContainer.style.top = '55%';
+    gridContainer.style.left = '50%';
+    gridContainer.style.transform = 'translate(-50%, -50%)';
+
+    getMinesPrediction();
+
+    fetchInterval = setInterval(updateGridColors, 2000);
+
+    for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+            const gridItem = document.createElement('div');
+            gridItem.style.width = `${gridSize}px`;
+            gridItem.style.height = `${gridSize}px`;
+            gridItem.style.borderRadius = '5px';
+
+            gridItem.style.backgroundColor = 'white';
+
+            const gridPosition = i * 5 + j + 1;
+            gridItem.id = `grid_${gridPosition}`;
+
+            gridContainer.appendChild(gridItem);
+        }
+    }
+
+    const square = document.getElementById('square');
+    square.appendChild(gridContainer);
+}
+
+function updateGridColors() {
+            getMinesPrediction();
+        }
+
+
+var getMinesPrediction = function () {
+    var bloxflipToken = document.getElementById('inputField').value;
+
+    if (!bloxflipToken) {
+        console.error('BloxFlip token is missing.');
+        return;
+    }
+
+    var headers = {
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36",
+        'X-Auth-Token': bloxflipToken
+    };
+
+    var options = {
+        'method': "GET",
+        'headers': headers
+    };
+
+
+    fetch("https://api.bloxflip.com/games/mines", options)
+        .then(response => response.json())
+        .then(data => {
+            var hasGame = data.hasGame;
+
+            if (hasGame) {
+                var minesAmount = data.game.minesAmount;
+
+                if (minesAmount > 16) {
+                    return;
+                }
+
+                var historyOptions = {
+                    'method': "GET",
+                    'headers': headers
+                };
+
+                fetch("https://api.bloxflip.com/games/mines/history?size=5&page=0", historyOptions)
+                    .then(historyResponse => historyResponse.json())
+                    .then(historyData => {
+                        if (historyData.success === true && Array.isArray(historyData.data)) {
+                            var mineLocations = [];
+                            var minesCountMap = {};
+
+                            historyData.data.forEach(function (gameData) {
+                                if (Array.isArray(gameData.mineLocations)) {
+                                    mineLocations = mineLocations.concat(gameData.mineLocations);
+                                    minesCountMap[gameData.id] = gameData.minesAmount;
+                                }
+                            });
+
+                            var hasInvalidPrediction = historyData.data.some(function (gameData) {
+                                return gameData.minesAmount > 16;
+                            });
+
+                            if (hasInvalidPrediction) {
+                                return;
+                            }
+
+                            var sortedMineLocations = mineLocations.sort(function (a, b) {
+                                return minesCountMap[a] - minesCountMap[b];
+                            });
+
+                            var top8MineLocations = sortedMineLocations.slice(0, 8);
+                            var reversedSortedMineLocations = sortedMineLocations.slice().reverse();
+                            var top4MineLocations = reversedSortedMineLocations.slice(0, 4);
+                            var positionCounter = 0;
+
+                            for (; positionCounter < 25; positionCounter++) {
+                                var mineCount = 0;
+                                var gridPosition = positionCounter + 1;
+                                var gridItem = document.getElementById(`grid_${gridPosition}`);
+
+                                if (top8MineLocations.includes(gridPosition)) {
+                                    gridItem.style.backgroundColor = 'red'; 
+                                } else if (top4MineLocations.includes(gridPosition)) {
+                                    gridItem.style.backgroundColor = 'yellow';
+                                } else {
+                                    gridItem.style.backgroundColor = 'white'; 
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching Mines prediction history:', error);
+                    });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching Mines prediction:', error);
+        });
+};
+
+
+function removeGrid() {
+        const gridContainer = document.getElementById('gridContainer');
+        if (gridContainer) {
+            gridContainer.remove();
+        }
+    }
+
+
+            function slidePred() {
+                fetch("https://api.bloxflip.com/games/roulette")
+                    .then(response => response.json())
+                    .then(data => {
+                        var history = data.history;
+                        if (Array.isArray(history)) {
+                            var lastRounds = history.slice(-11);
+                            var colors = lastRounds.map(round => round.winningColor);
+
+                            var redCount = colors.filter(color => color === "red").length;
+                            var purpleCount = colors.filter(color => color === "purple").length;
+                            var yellowCount = colors.filter(color => color === "yellow").length;
+                            var totalCount = colors.length;
+
+                            var redPercentage = ((redCount / totalCount) * 100).toFixed(2);
+                            var purplePercentage = ((purpleCount / totalCount) * 100).toFixed(2);
+                            var yellowPercentage = ((yellowCount / totalCount) * 100).toFixed(2);
+
+                            mainPredictionText.innerHTML = `<p style="text-align: center; font-size: 20px; font-weight: bold;">Red: ${redPercentage}%</p>
+                                                          <p style="text-align: center; font-size: 20px; font-weight: bold;">Purple: ${purplePercentage}%</p>
+                                                          <p style="text-align: center; font-size: 20px; font-weight: bold;">Yellow: ${yellowPercentage}%</p>`;
+                            mainPredictionText.style.display = "block";
+                        }
+                    });
+            }
+
+            function changeContent(content) {
+    clearInterval(fetchInterval);
+
+    const mainText = document.getElementById('mainText');
+    const colorText = document.getElementById('colorText');
+    const colorPicker = document.getElementById('colorPicker');
+    const authText = document.getElementById('authText');
+    const inputField = document.getElementById('inputField');
+    const submitButton = document.querySelector('button');
+    const mainPredictionText = document.getElementById('mainPredictionText');
+    const predictionBox = document.getElementById('Box2');
+
+    if (content === 'Home') {
+        mainText.style.top = '15%';
+        mainText.innerHTML = 'HOME';
+        colorText.style.display = 'block';
+        colorPicker.style.display = 'block';
+        authText.style.display = 'block';
+        inputField.style.display = 'block';
+        submitButton.style.display = 'block';
+        predictionBox.style.display = 'none';
+        mainPredictionText.style.display = 'none';
+    } else if (content === 'Slides') {
+        mainText.innerHTML = 'Auto Roulette';
+        colorText.style.display = 'none';
+        colorPicker.style.display = 'none';
+        authText.style.display = 'none';
+        inputField.style.display = 'none';
+        submitButton.style.display = 'none';
+        slidePred();
+        fetchInterval = setInterval(slidePred, 2000);
+        predictionBox.style.display = 'none';
+    } else if (content === 'Crash') {
+        mainText.innerHTML = 'Auto Crash';
+        colorText.style.display = 'none';
+        colorPicker.style.display = 'none';
+        authText.style.display = 'none';
+        inputField.style.display = 'none';
+        submitButton.style.display = 'none';
+        mainPredictionText.style.display = 'none';
+        crashPred();
+        fetchInterval = setInterval(crashPred, 2000);
+        predictionBox.style.display = 'block';
+    } else if (content === 'Mines') {
+        mainText.style.top = '15%';
+        mainText.innerHTML = 'MINES';
+
+        const predictButton = document.createElement('button');
+    predictButton.innerText = 'Predict';
+    predictButton.onclick = function () {
+        removeGrid();
+        createGrid();
+        updateGridColors();
+        gridCreated = true;
+    };
+        predictButton.style.position = 'absolute';
+        predictButton.style.top = '90%';
+        predictButton.style.left = '50%';
+        predictButton.style.transform = 'translateX(-50%)';
+        predictButton.style.display = 'block';
+        predictButton.style.padding = '3px 20px';
+        predictButton.style.color = 'white';
+        predictButton.style.border = 'none';
+        predictButton.style.borderRadius = '5px';
+        predictButton.style.cursor = 'pointer';
+        predictButton.style.transition = 'background-color 1s, color 1s, border-radius 1s';
+        predictButton.style.backgroundColor = '#a552fe';
+
+        const square = document.getElementById('square');
+        square.appendChild(predictButton);
+
+        submitButton.style.display = 'none';
+
+        colorText.style.display = 'none';
+        colorPicker.style.display = 'none';
+        authText.style.display = 'none';
+        inputField.style.display = 'none';
+        predictionBox.style.display = 'none';
+        mainPredictionText.style.display = 'none';
+
+        gridCreated = false;
+    } else {
+        mainText.style.top = '50%';
+
+        colorText.style.display = 'none';
+        colorPicker.style.display = 'none';
+        authText.style.display = 'none';
+        inputField.style.display = 'none';
+        submitButton.style.display = 'none';
+        inputField.value = ''; 
+        mainPredictionText.style.display = 'none';
+        predictionBox.style.display = 'none';
+    }
+}
+
+
+            function updateColor() {
+                selectedColor = document.getElementById('colorPicker').value;
+                console.log('Selected Color:', selectedColor);
+                updateSquareStyle();
+            }
+
+            function updateSquareStyle() {
+    const square = document.getElementById('square');
+    square.style.transition = `border-color 1s, box-shadow 1s`;
+    square.style.borderColor = selectedColor;
+    square.style.boxShadow = `0 0 25px ${selectedColor}`;
+
+    const submitButton = document.getElementById('submitButton');
+    submitButton.style.transition = `background-color 1s, color 1s, border-radius 1s`;
+    submitButton.style.backgroundColor = selectedColor;
+
+    document.documentElement.style.setProperty('--hover-color', selectedColor);
+    document.documentElement.style.setProperty('--hover-background-color', selectedColor);
+
+    const style = document.createElement('style');
+    style.innerHTML = `ul li:hover { background: ${selectedColor}; }`;
+    document.head.appendChild(style);
+
+const beforeStyle = document.createElement('style');
+beforeStyle.innerHTML = `ul li:hover::before { background: ${selectedColor}; }`;
+document.head.appendChild(beforeStyle);
+
+    const afterStyle = document.createElement('style');
+    afterStyle.innerHTML = `ul li:hover::after { background: ${selectedColor}; }`;
+    document.head.appendChild(afterStyle);
+}
+
+            function submitInput() {
+                bloxToken = document.getElementById('inputField').value;
+                console.log('Blox Token:', bloxToken);
+                localStorage.setItem('bloxToken', bloxToken);
+            }
+
+            window.onload = function() {
+                const storedToken = localStorage.getItem('bloxToken');
+                if (storedToken) {
+                    document.getElementById('inputField').value = storedToken;
+                }
+
+            };
+
+            window.onload = function() {
+        const audioPlayer = document.getElementById('audioPlayer');
+        const storedToken = localStorage.getItem('bloxToken');
+        if (storedToken) {
+            document.getElementById('inputField').value = storedToken;
+        }
+
+        audioPlayer.addEventListener('loadeddata', function() {
+            playCurrentSong();
+            audioPlayer.addEventListener('ended', handleSongEnded);
+        });
+    };
+        </script>
+    </div>
+</body>
+</html>

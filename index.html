@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Page</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="loginbtn.css">
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #eee;
+        }
+
+        .aqua {
+            position: relative;
+            text-align: center;
+        }
+
+        .percentBar {
+            position: relative;
+        }
+
+        #progressLabel {
+            margin-top: 30px;
+            font-weight: bold;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="aqua">
+        <span class="percentBar"><h3 class="number">0%</h3></span>
+    </div>
+    <h3 id="progressLabel">Testing...</h3>
+    <h2>BLAZE</h2>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    let i = 0;
+    let h2 = document.querySelector('h2');
+    let h3 = document.querySelector('h3');
+    let lunar = document.querySelector('.aqua');
+    let body = document.querySelector('body');
+    let number = document.querySelector('.number');
+    let percentBar = document.querySelector('.percentBar');
+    let progressLabel = document.getElementById('progressLabel');
+
+    function updateProgressBar() {
+        number.innerHTML = i + '<span>%</span>';
+        percentBar.style.width = i + '%';
+        i++;
+
+        if (i <= 100) {
+            if (i === 27 || i == 52 || i == 73 || i == 92) {
+                setTimeout(function() {
+                    updateProgressBar();
+                }, 500);
+            } else {
+                setTimeout(function() {
+                    updateProgressBar();
+                    updateProgressLabel(i);
+                }, Math.random() * 100 + 37);
+            }
+        } else {
+            setTimeout(function () {
+                progressLabel.innerHTML = '';
+                lunar.style.opacity = '0';
+                lunar.style.visibility = 'hidden';
+                body.style.background = '#f04029';
+                h2.style.opacity = '1';
+                h2.style.visibility = 'visible';
+                body.innerHTML += `
+                    <ul>
+                        <li style="--clr:#f04029;">
+                            <a href="login.html" target="_blank">
+                                <i class="fa-solid fa-right-to-bracket"></i>
+                                <span>Login</span>
+                            </a>
+                        </li>
+                    </ul>
+                `;
+
+                setTimeout(function () {
+                    document.querySelector('ul').style.opacity = '1';
+                }, 1000);
+
+            });
+        }
+    }
+
+    function updateProgressLabel(progress) {
+        if (progress < 27) {
+            progressLabel.innerHTML = 'Downloading Libraries...';
+        } else if (progress < 52) {
+            progressLabel.innerHTML = 'Installing Packages...';
+        } else if (progress < 73) {
+            progressLabel.innerHTML = 'Connecting To Bloxflip API...';
+        } else {
+            progressLabel.innerHTML = 'Gathering Data... (ur patient omg)';
+        }
+    }
+
+    updateProgressBar();
+});
+
+    </script>
+</body>
+</html>
